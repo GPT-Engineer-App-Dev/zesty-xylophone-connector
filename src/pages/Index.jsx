@@ -2,11 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { Trash2, Plus, Moon, Sun } from "lucide-react";
+
+const categories = ['Work', 'Personal', 'Shopping', 'Other'];
 
 const Index = () => {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [newCategory, setNewCategory] = useState(categories[0]);
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -20,7 +25,7 @@ const Index = () => {
   const addTask = (e) => {
     e.preventDefault();
     if (newTask.trim()) {
-      setTasks([...tasks, { id: Date.now(), text: newTask, completed: false }]);
+      setTasks([...tasks, { id: Date.now(), text: newTask, category: newCategory, completed: false }]);
       setNewTask('');
     }
   };
@@ -34,6 +39,10 @@ const Index = () => {
   const deleteTask = (id) => {
     setTasks(tasks.filter(task => task.id !== id));
   };
+
+  const completionPercentage = tasks.length > 0
+    ? (tasks.filter(task => task.completed).length / tasks.length) * 100
+    : 0;
 
   return (
     <div className={`min-h-screen py-8 transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
@@ -50,18 +59,34 @@ const Index = () => {
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           </div>
-          <form onSubmit={addTask} className="flex space-x-2 mb-4">
+          <form onSubmit={addTask} className="space-y-4 mb-4">
             <Input
               type="text"
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
               placeholder="Add a new task"
-              className="flex-grow dark:bg-gray-700 dark:text-white"
+              className="w-full dark:bg-gray-700 dark:text-white"
             />
-            <Button type="submit" size="icon">
-              <Plus className="h-4 w-4" />
+            <Select value={newCategory} onValueChange={setNewCategory}>
+              <SelectTrigger className="w-full dark:bg-gray-700 dark:text-white">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="submit" className="w-full">
+              <Plus className="h-4 w-4 mr-2" /> Add Task
             </Button>
           </form>
+          <div className="mb-4">
+            <Progress value={completionPercentage} className="w-full" />
+            <p className={`text-sm mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {completionPercentage.toFixed(0)}% of tasks completed
+            </p>
+          </div>
           <ul className="space-y-2">
             {tasks.map((task) => (
               <li key={task.id} className={`flex items-center justify-between p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -71,12 +96,15 @@ const Index = () => {
                     checked={task.completed}
                     onCheckedChange={() => toggleTask(task.id)}
                   />
-                  <label
-                    htmlFor={`task-${task.id}`}
-                    className={`text-sm ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}
-                  >
-                    {task.text}
-                  </label>
+                  <div>
+                    <label
+                      htmlFor={`task-${task.id}`}
+                      className={`text-sm ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}
+                    >
+                      {task.text}
+                    </label>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{task.category}</p>
+                  </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}>
                   <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
