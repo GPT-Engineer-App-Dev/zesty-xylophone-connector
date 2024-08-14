@@ -9,10 +9,6 @@ const PongGame = () => {
 
   useEffect(() => {
     if (gameStarted) {
-      // Intentional runtime error: Trying to access a property of undefined
-      const causeError = undefined;
-      causeError.nonExistentMethod();
-
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       let animationFrameId;
