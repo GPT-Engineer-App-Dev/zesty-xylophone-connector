@@ -1,93 +1,123 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from "@/components/ui/button"
 
-const CatchTheBallGame = () => {
+const PongGame = () => {
   const canvasRef = useRef(null);
+  const [playerScore, setPlayerScore] = useState(0);
+  const [aiScore, setAiScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animationFrameId;
+    if (gameStarted) {
+      // Intentional runtime error: Trying to access a property of undefined
+      const causeError = undefined;
+      causeError.nonExistentMethod();
 
-    // Game variables
-    let score = 0;
-    const paddle = { x: 175, y: 380, width: 50, height: 10 };
-    const ball = { x: 100, y: 0, size: 10, speed: 2 };
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      let animationFrameId;
 
-    // Handle mouse movement
-    const handleMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      paddle.x = e.clientX - rect.left - paddle.width / 2;
-    };
+      // Game variables
+      const paddleHeight = 80;
+      const paddleWidth = 10;
+      let playerY = (canvas.height - paddleHeight) / 2;
+      let aiY = (canvas.height - paddleHeight) / 2;
+      const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 5, dx: 5, dy: 5 };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
+      const gameLoop = () => {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Game loop
-    const gameLoop = () => {
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Move player paddle
+        canvas.addEventListener('mousemove', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          playerY = e.clientY - rect.top - paddleHeight / 2;
+        });
 
-      // Move ball
-      ball.y += ball.speed;
+        // Simple AI movement
+        aiY += (ball.y - (aiY + paddleHeight / 2)) * 0.1;
 
-      // Draw paddle
-      ctx.fillStyle = '#0000FF';
-      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+        // Move ball
+        ball.x += ball.dx;
+        ball.y += ball.dy;
 
-      // Draw ball
-      ctx.fillStyle = '#FF0000';
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
-      ctx.fill();
+        // Ball collision with top and bottom
+        if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+          ball.dy *= -1;
+        }
 
-      // Check collision
-      if (
-        ball.y + ball.size > paddle.y &&
-        ball.x > paddle.x &&
-        ball.x < paddle.x + paddle.width
-      ) {
-        score++;
-        ball.y = 0;
-        ball.x = Math.random() * (canvas.width - ball.size);
-      }
+        // Ball collision with paddles
+        if (
+          (ball.x - ball.radius < paddleWidth && ball.y > playerY && ball.y < playerY + paddleHeight) ||
+          (ball.x + ball.radius > canvas.width - paddleWidth && ball.y > aiY && ball.y < aiY + paddleHeight)
+        ) {
+          ball.dx *= -1;
+        }
 
-      // Check if ball is out
-      if (ball.y > canvas.height) {
-        ball.y = 0;
-        ball.x = Math.random() * (canvas.width - ball.size);
-      }
+        // Score
+        if (ball.x - ball.radius < 0) {
+          setAiScore(prevScore => prevScore + 1);
+          resetBall();
+        } else if (ball.x + ball.radius > canvas.width) {
+          setPlayerScore(prevScore => prevScore + 1);
+          resetBall();
+        }
 
-      // Draw score
-      ctx.fillStyle = '#000000';
-      ctx.font = '16px Arial';
-      ctx.fillText(`Score: ${score}`, 8, 20);
+        // Draw paddles
+        ctx.fillStyle = '#0000FF';
+        ctx.fillRect(0, playerY, paddleWidth, paddleHeight);
+        ctx.fillRect(canvas.width - paddleWidth, aiY, paddleWidth, paddleHeight);
 
-      // Call next frame
-      animationFrameId = requestAnimationFrame(gameLoop);
-    };
+        // Draw ball
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FF0000';
+        ctx.fill();
+        ctx.closePath();
 
-    gameLoop();
+        // Draw scores
+        ctx.font = '24px Arial';
+        ctx.fillText(playerScore, canvas.width / 4, 30);
+        ctx.fillText(aiScore, 3 * canvas.width / 4, 30);
 
-    // Cleanup
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
+        animationFrameId = requestAnimationFrame(gameLoop);
+      };
+
+      const resetBall = () => {
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1);
+        ball.dy = 5 * (Math.random() > 0.5 ? 1 : -1);
+      };
+
+      gameLoop();
+
+      return () => {
+        cancelAnimationFrame(animationFrameId);
+      };
+    }
+  }, [gameStarted, playerScore, aiScore]);
+
+  const startGame = () => {
+    setGameStarted(true);
+    setPlayerScore(0);
+    setAiScore(0);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold mb-4">Catch the Ball</h1>
+      <h1 className="text-3xl font-bold mb-4">Pong Game</h1>
       <canvas
         ref={canvasRef}
-        width={400}
+        width={800}
         height={400}
-        className="border border-gray-300 bg-white"
+        className="border border-gray-300 bg-white mb-4"
       />
-      <p className="mt-4 text-gray-600">
-        Move your mouse to control the paddle and catch the falling balls!
-      </p>
+      <Button onClick={startGame} className="mt-4">
+        {gameStarted ? 'Restart Game' : 'Start Game'}
+      </Button>
     </div>
   );
 };
 
-export default CatchTheBallGame;
+export default PongGame;
